@@ -10,7 +10,8 @@
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
   function blanda(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function nz(a, b) { var v; do { v = rnd(a, b); } while (v === 0); return v; }
-  function tal(v) { return v < 0 ? MI + (-v) : '' + v; }
+  function brak(v) { v = Math.abs(v); for (var d = 2; d <= 2000; d++) { var n = Math.round(v * d); if (Math.abs(v * d - n) < 1e-7) return [n, d]; } return [Math.round(v), 1]; }
+  function tal(v) { if (!Number.isInteger(v)) { var q = brak(v); return (v < 0 ? MI : '') + frac(q[0], q[1]); } return v < 0 ? MI + (-v) : '' + v; }
   function norm(s) {
     return String(s).replace(/[٠-٩]/g, function (c) { return c.charCodeAt(0) - 0x660; })
       .replace(/[۰-۹]/g, function (c) { return c.charCodeAt(0) - 0x6F0; })
@@ -27,7 +28,7 @@
 
   /* ---------- termer som HTML ---------- */
   // term: {k: koefficient, x: true/false}
-  function kropp(k, x) { var a = Math.abs(k); return x ? (a === 1 ? '' : a) + '<i>x</i>' : '' + a; }
+  function kropp(k, x) { var a = Math.abs(k); return x ? (a === 1 ? '' : tal(a)) + '<i>x</i>' : tal(a); }
   function termHtml(t, forst, cls) {
     var tecken = t.k < 0 ? (forst ? MI : ' ' + MI + ' ') : (forst ? '' : ' + ');
     return tecken + '<span class="' + (cls || (t.x ? 'tx' : 'tk')) + '">' + kropp(t.k, t.x) + '</span>';
@@ -48,7 +49,7 @@
     }
     var h = '', forst = true;
     if (s.a) {
-      if (s.d > 1) h += '<span class="tx">' + frac('<i>x</i>', s.d) + '</span>';
+      if (s.d > 1) h += '<span class="tx">' + (s.a < 0 ? MI : '') + frac((Math.abs(s.a) === 1 ? '' : Math.abs(s.a)) + '<i>x</i>', s.d) + '</span>';
       else h += termHtml({ k: s.a, x: true }, true);
       forst = false;
     }
@@ -181,8 +182,8 @@
   var OPNAMN = { '+': ['Addera', 'adderar'], '-': ['Subtrahera', 'subtraherar'], '*': ['Multiplicera', 'multiplicerar'], '/': ['Dividera', 'dividerar'] };
   var OPTECKEN = { '+': '+', '-': MI, '*': '·', '/': '÷' };
   function bort(v, x) { return { op: v > 0 ? '-' : '+', n: Math.abs(v), x: x }; }
-  function opText(m) { return OPTECKEN[m.op] + ' ' + (m.x ? (m.n === 1 ? '' : m.n) + 'x' : m.n); }
-  function opTextHtml(m) { return OPTECKEN[m.op] + ' ' + (m.x ? (m.n === 1 ? '' : m.n) + '<i>x</i>' : m.n); }
+  function opText(m) { return OPTECKEN[m.op] + ' ' + (m.x ? (m.n === 1 ? '' : m.n) + 'x' : (m.n < 0 ? '(' + MI + (-m.n) + ')' : m.n)); }
+  function opTextHtml(m) { return OPTECKEN[m.op] + ' ' + (m.x ? (m.n === 1 ? '' : m.n) + '<i>x</i>' : (m.n < 0 ? '(' + MI + (-m.n) + ')' : m.n)); }
   function loses(L, Rr) {
     return (L.a === 1 && L.d === 1 && !L.b && !L.f && !harX(Rr)) || (Rr.a === 1 && Rr.d === 1 && !Rr.b && !Rr.f && !harX(L));
   }
@@ -209,7 +210,7 @@
     } else if (X.d > 1) {
       m.push({ op: '*', n: X.d, x: false, tips: 'Multiplicera med ' + X.d + ' (·) på båda sidor, så försvinner bråkstrecket.' });
     } else if (X.a !== 1) {
-      m.push({ op: '/', n: X.a, x: false, tips: 'Dividera med ' + X.a + ' (÷) på båda sidor, så blir det ett x.' });
+      m.push({ op: '/', n: X.a, x: false, tips: 'Dividera med ' + tal(X.a) + ' (÷) på båda sidor, så blir det ett x.' });
     }
     return m;
   }
@@ -238,14 +239,14 @@
     var X = harX(L) && !harX(Rr) ? L : (harX(Rr) && !harX(L) ? Rr : null);
     if (X && X.b && (m.op === '/' || m.op === '*')) return 'Ta först bort talet ' + tal(X.b) + ' som står tillsammans med x. Sedan kan du ' + (m.op === '/' ? 'dividera' : 'multiplicera') + '.';
     if (m.x && L.a && Rr.a) return 'Ta bort den minsta variabeltermen (x-termen), så blir det inte ett negativt antal x.';
-    if (X && !X.b && X.d === 1 && m.op === '/') return 'Dividera med talet som står framför x (' + X.a + ').';
+    if (X && !X.b && X.d === 1 && m.op === '/') return 'Dividera med talet som står framför x (' + tal(X.a) + ').';
     if (X && !X.b && X.d > 1 && m.op === '*') return 'Multiplicera med talet under bråkstrecket (' + X.d + ').';
     return 'Det draget gör inte ekvationen enklare. Titta på vad som står tillsammans med x, eller tryck på Tips.';
   }
 
   /* ---------- vågen ---------- */
   function visaVag(T) {
-    if (T.niv > 3 || flytta()) return false;
+    if (T.niv > 3 || flytta() || T.forenklaLed) return false;
     var ok = true;
     [T.L, T.R].forEach(function (s) { if (s.f || s.d > 1 || s.a < 0 || s.b < 0 || s.a > 10 || s.b > 30) ok = false; });
     return ok;
@@ -285,11 +286,159 @@
 
   /* ---------- tillstånd ---------- */
   var V = { typ: hamta('typ', 'ekvation'), niv: +hamta('niv', '1'), lage: hamta('lage', 'steg'), metod: hamta('metod', 'balans') };
-  function flyttNiv() { return V.niv === 3 || V.niv === 4; }
-  function flytta() { return V.typ === 'ekvation' && V.lage === 'steg' && V.metod === 'flytta' && (V.niv === 3 || V.niv === 4); }
-  if (!NIV[V.typ]) V.typ = 'ekvation';
+  function flyttNiv() { return V.typ === 'egen' || V.niv === 3 || V.niv === 4; }
+  function flytta() { if (V.typ === 'egen') return V.metod === 'flytta' && !!(T && T.flyttOK); return V.typ === 'ekvation' && V.lage === 'steg' && V.metod === 'flytta' && (V.niv === 3 || V.niv === 4); }
+  if (!NIV[V.typ] && V.typ !== 'egen') V.typ = 'ekvation';
   if (!(V.niv >= 1 && V.niv <= 5)) V.niv = 1;
   var runda = null, T = null;
+
+  /* ---------- egen uppgift: tolka elevens uttryck eller ekvation ---------- */
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a || 1; }
+  function Q(n, d) { d = d || 1; if (d < 0) { n = -n; d = -d; } var g = gcd(n, d); return { n: n / g, d: d / g }; }
+  function qa(x, y) { return Q(x.n * y.d + y.n * x.d, x.d * y.d); }
+  function qm(x, y) { return Q(x.n * y.n, x.d * y.d); }
+  function qdiv(x, y) { return Q(x.n * y.d, x.d * y.n); }
+  function qv(x) { return x.n / x.d; }
+  function Fel(t) { this.t = t; }
+  // linjärt uttryck: {a: Q, b: Q}
+  function tolkaLinjar(str) {
+    var tk = str.match(/\d+|x|[+\-*/()]/g) || [], i = 0;
+    if (tk.join('') !== str) throw new Fel('Jag förstår inte allt du har skrivit. Använd siffror, x, +, ' + MI + ', parenteser och =.');
+    function L(a, b) { return { a: a, b: b }; }
+    function nol(v) { return v.a.n === 0; }
+    function expr() {
+      var v = term();
+      while (tk[i] === '+' || tk[i] === '-') { var o = tk[i++], w = term(); v = o === '+' ? L(qa(v.a, w.a), qa(v.b, w.b)) : L(qa(v.a, Q(-w.a.n, w.a.d)), qa(v.b, Q(-w.b.n, w.b.d))); }
+      return v;
+    }
+    function mul(v, w) { if (!nol(v) && !nol(w)) throw new Fel('Här multipliceras x med x (x²). Appen klarar bara ekvationer utan x².'); return L(qa(qm(v.a, w.b), qm(w.a, v.b)), qm(v.b, w.b)); }
+    function term() {
+      var v = faktor();
+      for (;;) {
+        if (tk[i] === '*') { i++; v = mul(v, faktor()); }
+        else if (tk[i] === '/') { i++; var w = faktor(); if (!nol(w)) throw new Fel('x får inte stå i nämnaren (under bråkstrecket).'); if (w.b.n === 0) throw new Fel('Man kan inte dividera med 0.'); v = L(qdiv(v.a, w.b), qdiv(v.b, w.b)); }
+        else if (tk[i] === 'x' || tk[i] === '(' || (tk[i] && /\d/.test(tk[i]))) v = mul(v, faktor());
+        else return v;
+      }
+    }
+    function faktor() {
+      var t = tk[i];
+      if (t === undefined) throw new Fel('Det saknas något i slutet. Kontrollera att uttrycket är färdigt.');
+      if (t === '-') { i++; var v = faktor(); return L(Q(-v.a.n, v.a.d), Q(-v.b.n, v.b.d)); }
+      if (t === '+') { i++; return faktor(); }
+      if (t === 'x') { i++; return L(Q(1), Q(0)); }
+      if (/\d/.test(t)) { i++; if (t.length > 4) throw new Fel('Använd lite mindre tal (högst 9999).'); return L(Q(0), Q(+t)); }
+      if (t === '(') { i++; var e = expr(); if (tk[i] !== ')') throw new Fel('Det saknas en slutparentes ).'); i++; return e; }
+      throw new Fel('Kontrollera tecknen. Det står ' + (t === ')' ? 'en parentes ) för mycket' : 'två räknetecken i rad') + '.');
+    }
+    var r = expr();
+    if (i < tk.length) throw new Fel(tk[i] === ')' ? 'Det finns en slutparentes ) för mycket.' : 'Jag förstår inte allt du har skrivit. Kontrollera tecken och parenteser.');
+    return r;
+  }
+  // uttryck som termlista (för förenkla): stöder tal, x-termer och tal(…) med enkla termer inuti
+  function tolkaTermer(str) {
+    var tk = str.match(/\d+|x|[+\-*()]/g) || [], i = 0, ut = [], par = false;
+    if (tk.join('') !== str) throw new Fel(str.indexOf('/') >= 0 ? 'Skriv uttrycket utan bråkstreck.' : 'Jag förstår inte allt du har skrivit.');
+    function enkel(inne) {
+      var tecken = 1, harTal = false;
+      while (tk[i] === '+' || tk[i] === '-') { if (tk[i] === '-') tecken = -tecken; i++; }
+      var n = 1;
+      if (tk[i] && /\d/.test(tk[i])) { n = +tk[i]; i++; harTal = true; if (tk[i] === '*') i++; }
+      if (tk[i] === 'x') { i++; if (tk[i] === 'x' || tk[i] === '(') throw new Fel('Här multipliceras x med något mer. Appen klarar bara termer som 3x.'); return [{ k: tecken * n, x: true }]; }
+      if (tk[i] === '(' && !inne) {
+        i++; var inre = [];
+        while (tk[i] !== ')') { if (tk[i] === undefined) throw new Fel('Det saknas en slutparentes ).'); inre = inre.concat(enkel(true)); }
+        i++; par = true;
+        if (tk[i] === 'x' || tk[i] === '(' || (tk[i] && /\d/.test(tk[i]))) throw new Fel('Skriv talet framför parentesen, till exempel 3(x + 2).');
+        return inre.map(function (t) { return { k: t.k * tecken * n, x: t.x, p: 1, k0: t.k, f: tecken * n }; });
+      }
+      if (tk[i] === '(' && inne) throw new Fel('Appen klarar inte parenteser inuti parenteser.');
+      if (!harTal) throw new Fel('Kontrollera tecknen. Det saknas ett tal eller x.');
+      return [{ k: tecken * n, x: false }];
+    }
+    while (i < tk.length) ut = ut.concat(enkel(false));
+    return { ts: ut.filter(function (t) { return t.k !== 0 || t.p; }), par: par };
+  }
+  function tecknaHtml(str) {
+    return '<span class="tk">' + tecknaRa(str) + '</span>';
+  }
+  function tecknaRa(str) {
+    return str.replace(/-/g, ' ' + MI + ' ').replace(/\+/g, ' + ').replace(/=/g, ' = ').replace(/\*/g, ' · ').replace(/x/g, '<i>x</i>').replace(/\(\s+/g, '(').replace(/^\s+/, '').replace(/= \s+/g, '= ');
+  }
+  function egenTolka(rad) {
+    var s = norm(rad).replace(/·/g, '*').replace(/÷|:/g, '/');
+    if (!s) return { fel: 'Skriv först ett uttryck eller en ekvation.' };
+    if (/[.,]/.test(s)) return { fel: 'Skriv utan decimaltal. Använd hela tal, eller bråk som x/2.' };
+    if (/[a-wyz]/i.test(s)) return { fel: 'Använd x som variabel. Andra bokstäver fungerar inte här.' };
+    if (/[²^]/.test(s)) return { fel: 'Appen klarar bara ekvationer och uttryck utan x² (inga potenser).' };
+    var delar = s.split('=');
+    try {
+      if (delar.length > 2) return { fel: 'En ekvation har bara ett likhetstecken (=).' };
+      if (delar.length === 1) {
+        var r = tolkaTermer(s), A = 0, B = 0, cx = 0, ck = 0;
+        if (!r.ts.length) return { fel: 'Skriv ett uttryck med minst två termer.' };
+        r.ts.forEach(function (t) { if (t.x) { A += t.k; cx++; } else { B += t.k; ck++; } });
+        if (!r.par && cx <= 1 && ck <= 1) return { fel: 'Det uttrycket är redan förenklat. Skriv ett längre uttryck, till exempel 3x + 5 ' + MI + ' x + 2.' };
+        if (r.ts.length > 12) return { fel: 'Uttrycket är för långt. Använd högst 12 termer.' };
+        return { typ: 'forenkla', egen: true, ts: r.ts, par: r.par, A: A, B: B, visa: tecknaHtml(s), exp: r.ts };
+      }
+      if (!delar[0] || !delar[1]) return { fel: 'Det ska stå något på båda sidor om likhetstecknet.' };
+      var l = tolkaLinjar(delar[0]), h = tolkaLinjar(delar[1]);
+      if (l.a.n === 0 && h.a.n === 0) return { fel: 'Ekvationen måste innehålla x.' };
+      var ka = qa(l.a, Q(-h.a.n, h.a.d)), kb = qa(h.b, Q(-l.b.n, l.b.d));
+      if (ka.n === 0) return { fel: kb.n === 0 ? 'Variabeltermerna tar ut varandra och båda leden blir lika. Då är alla tal lösningar, så det finns inget att lösa.' : 'Variabeltermerna tar ut varandra och leden blir olika. Ekvationen saknar lösning.' };
+      if (l.b.d !== 1 || h.b.d !== 1) return { fel: 'Siffertermerna blir bråk. Prova en ekvation med bråk bara i variabeltermen, till exempel x/4 + 2 = 5.' };
+      var mk = function (v) { if (v.a.d === 1) return S(v.a.n, v.b.n); return S(v.a.n, v.b.n, v.a.d); };
+      var Lc = mk(l), Rc = mk(h);
+      if ((Lc.d > 1 && harX(Rc)) || (Rc.d > 1 && harX(Lc))) return { fel: 'Appen klarar bråk med x bara när x finns i ett av leden.' };
+      if (Math.abs(Lc.a) > 99 || Math.abs(Rc.a) > 99 || Math.abs(Lc.b) > 9999 || Math.abs(Rc.b) > 9999) return { fel: 'Använd lite mindre tal.' };
+      var enkelForm = function (str) { return /^[+-]?\d*x(\/\d+)?([+-]\d+)?$/.test(str) || /^[+-]?\d+$/.test(str) || /^[+-]?\d+[+-]\d*x$/.test(str); };
+      var sol = qdiv(kb, ka);
+      return { typ: 'ekvation', egen: true, niv: 3, L0: Lc, R0: Rc, s: qv(sol), forenklaForst: !(enkelForm(delar[0]) && enkelForm(delar[1])), visa: '<span class="sd">' + tecknaHtml(delar[0]) + '</span><span class="lk">=</span><span class="sd">' + tecknaHtml(delar[1]) + '</span>' };
+    } catch (e) { if (e instanceof Fel) return { fel: e.t }; throw e; }
+  }
+  function egenInmatning(buf) {
+    runda = { egen: true, nr: 0, res: [], sett: {} };
+    document.body.classList.add('spelar');
+    T = { typ: 'inmatning', steg: 'inmatning', buf: buf || '', msg: 'Skriv ett <b>uttryck</b> som du vill förenkla, till exempel 3x + 5 ' + MI + ' x + 2, eller en <b>ekvation</b> som du vill lösa, till exempel 2(x + 3) = 4x ' + MI + ' 2.', msgKl: '' };
+    rita();
+    try { R.scrollIntoView({ block: 'start' }); } catch (e) {}
+  }
+  function egenStarta() {
+    var u = egenTolka(T.buf);
+    if (u.fel) { meddela(u.fel, 'fel'); return rita(); }
+    var buf = T.buf;
+    T = u; T.egenBuf = buf; T.fel = 0; T.buf = ''; T.akt = 0; T.msg = ''; T.msgKl = ''; T.forsok = 0; T.mark = {};
+    if (u.typ === 'forenkla') {
+      if (u.par) {
+        T.steg = 'exp2'; T.rutor = [];
+        u.ts.forEach(function (t, i) { if (t.p) { t.ri = T.rutor.length; T.rutor.push({ v: t.k, xk: t.x, buf: '' }); } });
+        var minus = u.ts.some(function (t) { return t.p && t.f === -1; }) && !u.ts.some(function (t) { return t.p && t.f !== -1; });
+        T.msg = minus ? 'Ta först bort parentesen. Minustecknet framför parentesen byter tecken på <b>varje</b> term inuti. Skriv termerna med tecken.' : 'Multiplicera först in parentesen. Talet framför parentesen multipliceras med <b>varje</b> term inuti. Skriv termerna med tecken.';
+      } else { T.steg = 'markera'; T.ts = u.ts.slice(); T.msg = 'Tryck på alla <b>variabeltermer</b>, alltså termerna med x.'; }
+    } else {
+      T.L = S(u.L0.a, u.L0.b, u.L0.d); T.R = S(u.R0.a, u.R0.b, u.R0.d);
+      T.flyttOK = !!(T.L.a && T.R.a && T.L.d === 1 && T.R.d === 1);
+      var not = V.metod === 'flytta' && !T.flyttOK ? 'Här finns x bara i ett led, så du använder balansmetoden. ' : '';
+      if (u.forenklaForst) {
+        T.rader = [{ h: u.visa }]; T.forenklaLed = true;
+        T.rutor = []; T.nyL = T.L; T.nyR = T.R; T.opRad = '';
+        var gml = { a: NaN, b: NaN, d: 1, f: 1, p: 0 };
+        T.mall = '<span class="sd">' + mallSida(gml, T.L) + '</span><span class="lk">=</span><span class="sd">' + mallSida(gml, T.R) + '</span>';
+        T.steg = 'fyll';
+        T.msg = not + 'Förenkla först varje led för sig. Skriv variabeltermen först och siffertermen sedan.';
+      } else {
+        T.rader = [{ h: ekvHtml(T.L, T.R) }];
+        T.steg = 'op'; T.op = null;
+        T.msg = not + (flytta() ? 'Vilken term vill du <b>flytta över</b> till andra sidan? Tryck på den.' : 'Vad gör du på <b>båda sidor</b>? Välj räknesätt och skriv talet.');
+      }
+    }
+    rita();
+  }
+  function ritaInmatning() {
+    var b = T.buf;
+    return '<p class="up-fraga">Skriv din egen uppgift</p><div class="a-rad a-ny"><span class="a-ruta sel a-inmat">' + (b ? tecknaHtml(b) : '&nbsp;') + '</span></div>';
+  }
 
   function startvy() {
     runda = null; T = null;
@@ -297,13 +446,18 @@
     var h = '<div class="v-box"><span class="v-et">1. Välj vad du vill träna</span><div class="a-typ" role="group">' +
       '<button data-typ="forenkla" class="' + (V.typ === 'forenkla' ? 'on' : '') + '"><b class="ik-f">3<i>x</i>+2<i>x</i></b><span>Förenkla uttryck</span><small>Samla variabeltermer och siffertermer</small></button>' +
       '<button data-typ="ekvation" class="' + (V.typ === 'ekvation' ? 'on' : '') + '"><b class="ik-e"><svg viewBox="0 0 40 30" aria-hidden="true"><path d="M20 6 L15 27 H25 Z"/><rect x="3" y="5" width="34" height="3" rx="1.5"/><path d="M2 18 H14 Q13 22 8 22 Q3 22 2 18 Z M26 18 H38 Q37 22 32 22 Q27 22 26 18 Z"/></svg></b><span>Lös ekvationer</span><small>Med balansmetoden</small></button>' +
-      '</div><div class="v-tva"><div><span class="v-et">2. Välj nivå</span><div class="v-seg a-niv">';
+      '<button data-typ="egen" class="' + (V.typ === 'egen' ? 'on' : '') + '"><b class="ik-g">\u270e</b><span>Skriv egen uppgift</span><small>Ditt eget uttryck eller din egen ekvation</small></button>' +
+      '</div>';
+    var eg = V.typ === 'egen';
+    if (!eg) {
+    h += '<div class="v-tva"><div><span class="v-et">2. Välj nivå</span><div class="v-seg a-niv">';
     for (var i = 1; i <= 5; i++) h += '<button data-niv="' + i + '" class="' + (V.niv === i ? 'on' : '') + '">' + i + '</button>';
     var nv = NIV[V.typ][V.niv - 1];
     h += '</div><p class="a-nivtext"><b>Nivå ' + V.niv + ': ' + nv[0] + '</b>, till exempel ' + nv[1].replace(/x/g, '<i>x</i>') + '</p></div>' +
       '<div><span class="v-et">3. Hur vill du räkna?</span><div class="v-seg a-lage"><button data-lage="steg" class="' + (V.lage === 'steg' ? 'on' : '') + '">Steg för steg<small>Ett steg i taget</small></button>' +
-      '<button data-lage="sjalv" class="' + (V.lage === 'sjalv' ? 'on' : '') + '">Själv<small>Skriv bara svaret</small></button></div></div></div>' +
-      (V.typ === 'ekvation' && V.lage === 'steg' ? '<div class="a-metod"><span class="v-et">4. Välj metod</span><div class="v-seg"><button data-metod="balans" class="' + (V.metod !== 'flytta' || !flyttNiv() ? 'on' : '') + '">Balansmetoden<small>Samma sak på båda sidor</small></button>' +
+      '<button data-lage="sjalv" class="' + (V.lage === 'sjalv' ? 'on' : '') + '">Själv<small>Skriv bara svaret</small></button></div></div></div>';
+    }
+    h += ((V.typ === 'ekvation' && V.lage === 'steg') || eg ? '<div class="a-metod"><span class="v-et">' + (eg ? '2. Välj metod för ekvationer' : '4. Välj metod') + '</span><div class="v-seg"><button data-metod="balans" class="' + (V.metod !== 'flytta' || !flyttNiv() ? 'on' : '') + '">Balansmetoden<small>Samma sak på båda sidor</small></button>' +
         '<button data-metod="flytta" class="' + (V.metod === 'flytta' && flyttNiv() ? 'on' : '') + '"' + (!flyttNiv() ? ' disabled' : '') + '>Flytta över<small>' + (!flyttNiv() ? 'Nivå 3–4 (x i båda leden)' : 'Byter led, byter räknesätt') + '</small></button></div><p class="a-nivtext a-metodtext">' + (V.metod === 'flytta' && flyttNiv() ? '<b>Flytta över:</b> en term som byter led byter räknesätt. + blir ' + MI + ', ' + MI + ' blir +, \u00b7 blir \u00f7. Det är samma sak som balansmetoden, fast kortare. Används när det finns variabeltermer i båda leden.' : '<b>Balansmetoden:</b> gör samma sak på båda sidor av likhetstecknet, så att ekvationen hela tiden är i balans, som en våg.') + '</p></div>' : '') +
       '<div class="v-start"><button id="aStart">Starta</button></div></div>';
     R.innerHTML = h;
@@ -312,7 +466,8 @@
     R.querySelectorAll('[data-niv]').forEach(function (b) { b.onclick = function () { V.niv = +b.dataset.niv; spara('niv', V.niv); startvy(); }; });
     R.querySelectorAll('[data-lage]').forEach(function (b) { b.onclick = function () { V.lage = b.dataset.lage; spara('lage', V.lage); startvy(); }; });
     R.querySelectorAll('[data-metod]').forEach(function (b) { b.onclick = function () { V.metod = b.dataset.metod; spara('metod', V.metod); startvy(); }; });
-    document.getElementById('aStart').onclick = startaRunda;
+    document.getElementById('aStart').onclick = eg ? function () { egenInmatning(''); } : startaRunda;
+    if (eg) document.getElementById('aStart').textContent = 'Skriv din uppgift';
   }
 
   function startaRunda() {
@@ -364,24 +519,27 @@
     var k;
     if (sort === 'op') k = ['7', '8', '9', '⌫', '4', '5', '6', 'x', '1', '2', '3', null, '0', null, 'OK'];
     else if (sort === 'uttr') k = ['7', '8', '9', '⌫', '4', '5', '6', 'x', '1', '2', '3', '+', '0', '-', 'OK'];
-    else k = ['7', '8', '9', '⌫', '4', '5', '6', '-', '1', '2', '3', null, '0', null, 'OK'];
-    var okText = sort === 'op' ? 'Gör det' : 'Rätta';
+    else if (sort === 'inmat') k = ['7', '8', '9', '⌫', '4', '5', '6', 'x', '1', '2', '3', '+', '0', '(', ')', '-', '=', '/', 'OK'];
+    else k = ['7', '8', '9', '⌫', '4', '5', '6', '-', '1', '2', '3', (T && T.rutor && T.rutor.some(function (r) { return r.brak && !r.ok; })) ? '/' : null, '0', null, 'OK'];
+    if (sort === 'op') k[11] = '±';
+    var okText = sort === 'op' ? 'Gör det' : sort === 'inmat' ? 'Börja' : 'Rätta';
     return '<div class="a-tangent">' + k.map(function (t) {
       if (t === null) return '<span></span>';
       if (t === 'OK') return '<button class="a-ok" data-k="OK">' + okText + '</button>';
       var lab = t === '-' ? MI : (t === 'x' ? '<i>x</i>' : t);
-      return '<button data-k="' + t + '" class="' + (t === '⌫' ? 'gra' : (t === 'x' || t === '-' || t === '+' ? 'sym' : '')) + '" aria-label="' + (t === '⌫' ? 'Sudda' : t) + '">' + lab + '</button>';
+      return '<button data-k="' + t + '" class="' + (t === '⌫' ? 'gra' : (t === 'x' || t === '-' || t === '+' || t === '±' || t === '=' || t === '/' || t === '(' || t === ')' ? 'sym' : '')) + '" aria-label="' + (t === '⌫' ? 'Sudda' : t) + '">' + lab + '</button>';
     }).join('') + '</div>';
   }
   function chip() {
+    if (V.typ === 'egen') return '<div class="v-bar"><div class="v-chip"><b>Egen uppgift</b>' + (T && T.typ === 'ekvation' ? ' · ' + (flytta() ? 'Flytta över' : 'Balansmetoden') : '') + '</div><button class="v-byt" id="aByt">Byt</button></div>';
     var nv = NIV[V.typ][V.niv - 1];
     return '<div class="v-bar"><div class="v-chip"><b>' + (V.typ === 'forenkla' ? 'Förenkla uttryck' : 'Ekvationer') + '</b> · Nivå ' + V.niv + ': ' + nv[0] + ' · ' + (V.lage === 'steg' ? 'Steg för steg' : 'Själv') + (flytta() ? ' · Flytta över' : '') + '</div><button class="v-byt" id="aByt">Byt</button></div>';
   }
 
   function rita() {
     R.setAttribute('data-typ', V.typ);
-    var h = chip() + '<div class="up-kort a-kort"><div class="up-topp"><span class="up-uppg">Uppgift ' + (runda.nr + 1) + ' av ' + ANTAL + '</span>' + prickar() + '</div>';
-    h += T.typ === 'forenkla' ? ritaForenkla() : ritaEkvation();
+    var h = chip() + '<div class="up-kort a-kort"><div class="up-topp"><span class="up-uppg">' + (runda.egen ? 'Egen uppgift' : 'Uppgift ' + (runda.nr + 1) + ' av ' + ANTAL) + '</span>' + (runda.egen ? '' : prickar()) + '</div>';
+    h += T.typ === 'inmatning' ? ritaInmatning() : T.typ === 'forenkla' ? ritaForenkla() : ritaEkvation();
     h += '<div class="up-msg ' + (T.msgKl || '') + '" aria-live="polite">' + T.msg + '</div>';
     h += ritaKontroller() + '</div>';
     R.innerHTML = h;
@@ -390,6 +548,14 @@
 
   function ritaForenkla() {
     var u = T, h = '<p class="up-fraga">Förenkla uttrycket</p>' + '<div class="a-leg"><span><i class="lx"></i>variabelterm (med x)</span><span><i class="lk2"></i>sifferterm (bara tal)</span></div>' + '<div class="a-uttr">';
+    if (T.steg === 'exp2') {
+      var n2 = 0;
+      h += u.visa + '</div><div class="a-rad a-ny">= ' + u.ts.map(function (t, i) {
+        if (t.p) return (i === 0 ? '' : ' ') + ruta(t.ri) + (t.x ? '<i class="xv">x</i>' : '');
+        return termHtml(t, i === 0);
+      }).join('') + '</div>';
+      return h;
+    }
     if (T.steg === 'exp') {
       h += uttrHtml(u) + '</div><div class="a-rad a-ny">' + parHtml({ par: u.par, pre: [] }) + ' = ' + ruta(0) + '<i class="xv">x</i> ' + ruta(1) + '</div>';
       return h;
@@ -443,6 +609,7 @@
 
   function ritaKontroller() {
     var h = '';
+    if (T.typ === 'inmatning') return '<div class="up-pad-wrap">' + tangenter('inmat') + '</div>';
     if (T.steg === 'op' && flytta()) {
       h += '<div class="up-knappar a-knappar">' + (T.L.f ? '<button class="up-angra" id="aExp">Multiplicera in parentesen</button>' : '') + '<button class="up-angra" id="aTips">Tips</button></div>';
     } else if (T.steg === 'op') {
@@ -453,12 +620,12 @@
       h += '</div><div class="a-bada"><span>På båda sidor:</span><span class="a-opv">' + (T.op ? OPTECKEN[T.op] : '?') + '</span><span class="a-ruta sel bred">' + (T.buf ? T.buf.replace(/x/g, '<i>x</i>') : '&nbsp;') + '</span></div>';
       h += '<div class="up-knappar a-knappar">' + (T.L.f ? '<button class="up-angra" id="aExp">Multiplicera in parentesen</button>' : '') + '<button class="up-angra" id="aTips">Tips</button></div></div>';
       h += '<div class="up-pad-wrap">' + tangenter('op') + '</div></div>';
-    } else if (T.steg === 'fyll' || T.steg === 'flytt' || T.steg === 'exp' || T.steg === 'xsum' || T.steg === 'ksum' || T.steg === 'kontroll' || T.steg === 'sjalv') {
+    } else if (T.steg === 'fyll' || T.steg === 'flytt' || T.steg === 'exp' || T.steg === 'exp2' || T.steg === 'xsum' || T.steg === 'ksum' || T.steg === 'kontroll' || T.steg === 'sjalv') {
       var sort = (T.typ === 'forenkla' && T.steg === 'sjalv') ? 'uttr' : 'tal';
       h += '<div class="up-pad-wrap">' + tangenter(sort) + '</div>';
       if (T.visaSvar) h += '<div class="up-knappar a-knappar"><button class="up-angra" id="aVisa">Visa svaret</button></div>';
     } else if (T.steg === 'klar') {
-      h += '<div class="up-knappar"><button class="up-nasta" id="aNasta">' + (runda.nr + 1 < ANTAL ? 'Nästa uppgift →' : 'Se resultatet') + '</button></div>';
+      h += '<div class="up-knappar"><button class="up-nasta" id="aNasta">' + (runda.egen ? 'Skriv en ny uppgift →' : runda.nr + 1 < ANTAL ? 'Nästa uppgift →' : 'Se resultatet') + '</button></div>';
     }
     return h;
   }
@@ -480,11 +647,18 @@
 
   function tangent(k) {
     if (!T) return;
+    if (T.typ === 'inmatning') {
+      if (k === 'OK') return egenStarta();
+      if (k === '⌫') T.buf = T.buf.slice(0, -1);
+      else if (T.buf.length < 40 && /^[0-9x+\-*/()=.,]$/.test(k)) T.buf += k;
+      T.msgKl = ''; return rita();
+    }
     if (T.steg === 'op') {
       if (k === 'OK') return provaDrag();
+      if (k === '±' || (k === '-' && (T.op === '/' || T.op === '*') && T.buf === '')) { T.buf = T.buf.charAt(0) === '-' ? T.buf.slice(1) : '-' + T.buf; return rita(); }
       if (k === '⌫') T.buf = T.buf.slice(0, -1);
       else if (k === 'x') { if (T.buf.indexOf('x') < 0) T.buf += 'x'; }
-      else if (/^\d$/.test(k)) { if (T.buf.indexOf('x') < 0 && T.buf.length < 3) T.buf += k; }
+      else if (/^\d$/.test(k)) { if (T.buf.indexOf('x') < 0 && T.buf.length < 4) T.buf += k; }
       else if ('+-*/'.indexOf(k) >= 0) T.op = k;
       return rita();
     }
@@ -496,15 +670,17 @@
     else if (k === '-') { if (T.steg === 'sjalv' && T.typ === 'forenkla') r.buf += '-'; else if (r.buf === '') r.buf = '-'; else if (r.buf === '-') r.buf = ''; }
     else if (k === '+') { if (T.steg === 'sjalv' && T.typ === 'forenkla') r.buf += '+'; }
     else if (k === 'x') { if (T.steg === 'sjalv' && T.typ === 'forenkla') r.buf += 'x'; }
+    else if (k === '/') { if (r.brak && r.buf.indexOf('/') < 0 && r.buf !== '' && r.buf !== '-') r.buf += '/'; }
     else if (/^\d$/.test(k) && r.buf.length < 14) r.buf += k;
     rita();
   }
 
   function provaDrag() {
     if (!T.op) { meddela('Välj först ett räknesätt: addera, subtrahera, multiplicera eller dividera.', 'fel'); return rita(); }
-    var s = norm(T.buf), mt = /^(\d*)(x?)$/.exec(s);
+    var s = norm(T.buf), mt = /^-?(\d*)(x?)$/.exec(s), neg = s.charAt(0) === '-';
     if (!s || !mt || (!mt[1] && !mt[2])) { meddela('Skriv vad du vill ' + OPNAMN[T.op][1].replace(/r$/, '') + ', till exempel 3 eller 2x.', 'fel'); return rita(); }
-    var m = { op: T.op, n: mt[1] === '' ? 1 : parseInt(mt[1], 10), x: !!mt[2] };
+    var m = { op: T.op, n: (mt[1] === '' ? 1 : parseInt(mt[1], 10)) * (neg ? -1 : 1), x: !!mt[2] };
+    if (neg && (m.op === '+' || m.op === '-')) { meddela('Skriv talet utan minustecken och välj räknesättet i stället.', 'fel'); return rita(); }
     if (m.n === 0) { meddela('Att ' + OPNAMN[T.op][1].replace(/r$/, '') + ' 0 ändrar ingenting. Välj ett annat tal.', 'fel'); return rita(); }
     gorDrag(m);
   }
@@ -618,7 +794,7 @@
       forst = false;
     }
     if (ny.b) {
-      if (andrat(gml.b, ny.b)) { T.rutor.push({ v: ny.b, buf: '', tecken: !forst }); h += (forst ? '' : ' ') + '{R' + (T.rutor.length - 1) + '}'; }
+      if (andrat(gml.b, ny.b)) { T.rutor.push({ v: ny.b, buf: '', tecken: !forst, brak: !Number.isInteger(ny.b) }); h += (forst ? '' : ' ') + '{R' + (T.rutor.length - 1) + '}'; }
       else h += termHtml({ k: ny.b, x: false }, forst);
       forst = false;
     }
@@ -631,6 +807,18 @@
     T.L = T.nyL; T.R = T.nyR; T.fadeL = T.fadeR = null;
     T.rader.push({ h: ekvHtml(T.L, T.R) });
     T.rutor = null;
+    var varForenkla = T.forenklaLed; T.forenklaLed = false;
+    if (varForenkla && !loses(T.L, T.R)) {
+      T.flyttOK = !!(T.L.a && T.R.a);
+      T.steg = 'op'; T.op = null; T.buf = '';
+      meddela('Rätt! Nu är leden förenklade. ' + (flytta() ? 'Vilken term vill du <b>flytta över</b>? Tryck på den.' : 'Vad gör du på <b>båda sidor</b>?'), 'ok');
+      return;
+    }
+    if (loses(T.L, T.R) && !Number.isInteger(T.s)) {
+      T.steg = 'klar';
+      meddela('Klart! <b><i>x</i> = ' + tal(T.s) + '</b>. Svaret är ett bråk, och det går bra.', 'klar');
+      return;
+    }
     if (loses(T.L, T.R)) {
       T.steg = 'kontroll';
       byggKontroll();
@@ -671,8 +859,9 @@
     T.rutor.forEach(function (r) {
       if (r.ok) return;
       var v = heltal(r.buf, r.xk);
+      if (v === null && r.brak) { var mb = /^(-?\d+)\/(\d+)$/.exec(norm(r.buf)); if (mb && +mb[2] !== 0) v = +mb[1] / +mb[2]; }
       if (r.buf === '' || r.buf === '-') { allaOk = false; return; }
-      if (v === r.v) { r.ok = true; r.fel = false; }
+      if (v !== null && Math.abs(v - r.v) < 1e-9) { r.ok = true; r.fel = false; if (r.brak) r.buf = (r.v < 0 ? '-' : '') + brak(r.v).join('/'); }
       else { r.fel = true; allaOk = false; nagonFel = true; }
     });
     if (nagonFel) {
@@ -684,6 +873,9 @@
       else if (T.steg === 'ksum') fx = 'Räkna ihop siffertermerna, och tänk på tecknet framför varje term.';
       else if (T.steg === 'sjalv') fx = 'Inte rätt. Försök igen' + (V.typ === 'ekvation' ? ', och kontrollera genom att sätta in ditt svar.' : '.');
       else if (T.steg === 'flytt') fx = T.flyttM.op === '+' || T.flyttM.op === '-' ? 'Tänk på tecknet. En term som byter led byter räknesätt: + blir ' + MI + ' och ' + MI + ' blir +.' : 'Skriv talet som flyttades. Det byter räknesätt men är samma tal.';
+      else if (T.steg === 'exp2') fx = 'Multiplicera talet framför parentesen med varje term inuti. Tänk på tecknen: ' + MI + ' gånger ' + MI + ' blir +.';
+      else if (T.forenklaLed) fx = 'Förenkla varje led för sig: samla variabeltermerna och siffertermerna, och multiplicera in parenteser.';
+      else if (T.rutor.some(function (r) { return r.brak && r.fel; })) fx = 'Svaret blir ett bråk. Skriv det med snedstreck, till exempel 7/3.';
       else fx = 'Rutan som är röd stämmer inte. Gör samma sak med varje tal och räkna igen.';
       if (T.steg === 'sjalv' && T.forsok >= 2) T.visaSvar = true;
       meddela(fx, 'fel');
@@ -708,6 +900,12 @@
       }
       if (T.steg === 'sjalv') { T.steg = 'klar'; byggKontrollKlar(); meddela('Rätt! <b>x = ' + tal(T.s) + '</b>.', 'klar'); return rita(); }
     } else {
+      if (T.steg === 'exp2') {
+        T.ts = T.exp.map(function (t) { return { k: t.k, x: t.x }; }).filter(function (t) { return t.k !== 0; }); T.rutor = null;
+        var cx2 = T.ts.filter(function (t) { return t.x; }).length, ck2 = T.ts.length - cx2;
+        if (cx2 <= 1 && ck2 <= 1) { klarForenkla('Rätt! Nu finns det inget mer att samla.'); return rita(); }
+        T.steg = 'markera'; meddela('Rätt! Tryck nu på alla <b>variabeltermer</b>.', 'ok'); return rita();
+      }
       if (T.steg === 'exp') {
         T.ts = T.exp.slice(); T.steg = 'markera'; T.rutor = null;
         meddela('Rätt! ' + parHtml({ par: T.par, pre: [] }) + ' = ' + termerHtml(T.exp.slice(T.pre.length, T.pre.length + 2)) + '. Tryck nu på alla <b>variabeltermer</b>.', 'ok');
@@ -790,6 +988,7 @@
     rita();
   }
   function nasta() {
+    if (runda.egen) return egenInmatning('');
     runda.res.push(T.fel === 0);
     runda.nr++;
     if (runda.nr >= ANTAL) return slut();
@@ -820,9 +1019,9 @@
     }
     var map = { 'Enter': 'OK', 'Backspace': '⌫', 'X': 'x', '−': '-', '÷': '/', ':': '/', '·': '*' };
     if (map[k]) k = map[k];
-    if (/^[0-9x+\-*/]$/.test(k) || k === 'OK' || k === '⌫') { e.preventDefault(); tangent(k); }
+    if (/^[0-9x+\-*/]$/.test(k) || k === 'OK' || k === '⌫' || (T.typ === 'inmatning' && /^[()=.,]$/.test(k))) { e.preventDefault(); tangent(k); }
   });
 
-  window.__alg = { V: V, flytta: flytta, genForenkla: genForenkla, genEkvation: genEkvation, drag: drag, tillamp: tillamp, loses: loses, varde: varde, T: function () { return T; } };
+  window.__alg = { egenTolka: egenTolka, V: V, flytta: flytta, genForenkla: genForenkla, genEkvation: genEkvation, drag: drag, tillamp: tillamp, loses: loses, varde: varde, T: function () { return T; } };
   startvy();
 })();

@@ -1,6 +1,6 @@
 // Algebrasteg – offline-stöd. VERSION byts automatiskt av bygg.py.
-const VERSION = 'alg-2aa8010c';
-const FILER = ['./', 'index.html', 'stil.css?v=2aa8010c', 'app.css?v=2aa8010c', 'algebra.js?v=2aa8010c', 'manifest.webmanifest',
+const VERSION = 'alg-78137cb5';
+const FILER = ['./', 'index.html', 'stil.css?v=78137cb5', 'app.css?v=78137cb5', 'algebra.js?v=78137cb5', 'manifest.webmanifest',
   'bilder/kompass.png', 'bilder/ikon-192.png', 'bilder/ikon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILER)).then(() => self.skipWaiting()));

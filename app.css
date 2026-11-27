@@ -3,7 +3,11 @@
 #alg i{font-style:italic;font-family:Georgia,'Times New Roman',serif;font-weight:700}
 .tx{color:var(--txd)}.tk{color:var(--tkd)}.tp{color:#33404D}
 /* startvy */
-.a-typ{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.a-typ{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tk{white-space:pre-wrap}
+.a-typ b.ik-g{font-size:30px;background:#E9E1D2;color:#6B5A3E}
+.a-inmat{min-width:min(520px,90%);font-size:28px;justify-content:flex-start;padding:0 14px}
+.a-hjalp{font-size:14px;color:#5C5650;margin:6px 0 0}
 .a-typ button{font:inherit;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;text-align:left;background:#fff;border:2px solid #E3DCD0;border-radius:16px;padding:12px 14px;cursor:pointer;color:#2A2622;touch-action:manipulation}
 .a-typ b{grid-row:span 2;width:84px;height:54px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;background:var(--txl);color:var(--txd)}
 .a-typ b.ik-e svg{width:46px;height:34px;fill:var(--txd)}
@@ -110,3 +114,5 @@ html body.spelar section.panel.panel{display:none!important}body.spelar main{mar
 .term.fl:hover{background:#FCF6E7;border-color:var(--ink)}
 .fl-fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.05;font-size:.85em}
 .fl-fr>span{border-bottom:2.5px solid currentColor;padding:0 6px;margin-bottom:3px}
+
+@media (min-width:900px){.a-typ b{width:64px}.a-typ button{column-gap:12px}}
