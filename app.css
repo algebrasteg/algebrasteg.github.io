@@ -99,3 +99,6 @@ html body.spelar section.panel.panel{display:none!important}body.spelar main{mar
 #alg{scroll-margin-top:8px}
 /* bred skärm: räknesätt till vänster, knappsats till höger */
 @media (min-width:761px){.a-opgrid{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start;margin-top:10px}.a-opgrid .a-opval{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0}.a-opgrid .up-pad-wrap{margin-top:0}.a-opgrid .a-knappar{margin-top:10px}.a-ekv.med-vag{grid-template-columns:1fr 260px}}
+.a-leg{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13.5px;font-weight:600;color:#4A5560;margin:2px 0 4px}
+.a-leg span{display:inline-flex;align-items:center;gap:6px}.a-leg i{width:14px;height:14px;border-radius:4px;display:inline-block}
+.a-leg .lx{background:var(--txl);border:2px solid var(--tx)}.a-leg .lk2{background:var(--tkl);border:2px solid var(--tk)}

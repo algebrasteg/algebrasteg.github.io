@@ -237,7 +237,7 @@
     if (L.f && m.op === '/') return 'Dividera med talet framför parentesen, eller multiplicera in parentesen.';
     var X = harX(L) && !harX(Rr) ? L : (harX(Rr) && !harX(L) ? Rr : null);
     if (X && X.b && (m.op === '/' || m.op === '*')) return 'Ta först bort talet ' + tal(X.b) + ' som står tillsammans med x. Sedan kan du ' + (m.op === '/' ? 'dividera' : 'multiplicera') + '.';
-    if (m.x && L.a && Rr.a) return 'Ta bort den minsta x-termen, så blir det inte ett negativt antal x.';
+    if (m.x && L.a && Rr.a) return 'Ta bort den minsta variabeltermen (x-termen), så blir det inte ett negativt antal x.';
     if (X && !X.b && X.d === 1 && m.op === '/') return 'Dividera med talet som står framför x (' + X.a + ').';
     if (X && !X.b && X.d > 1 && m.op === '*') return 'Multiplicera med talet under bråkstrecket (' + X.d + ').';
     return 'Det draget gör inte ekvationen enklare. Titta på vad som står tillsammans med x, eller tryck på Tips.';
@@ -293,7 +293,7 @@
     runda = null; T = null;
     document.body.classList.remove('spelar');
     var h = '<div class="v-box"><span class="v-et">1. Välj vad du vill träna</span><div class="a-typ" role="group">' +
-      '<button data-typ="forenkla" class="' + (V.typ === 'forenkla' ? 'on' : '') + '"><b class="ik-f">3<i>x</i>+2<i>x</i></b><span>Förenkla uttryck</span><small>Samla x-termer och tal</small></button>' +
+      '<button data-typ="forenkla" class="' + (V.typ === 'forenkla' ? 'on' : '') + '"><b class="ik-f">3<i>x</i>+2<i>x</i></b><span>Förenkla uttryck</span><small>Samla variabeltermer och siffertermer</small></button>' +
       '<button data-typ="ekvation" class="' + (V.typ === 'ekvation' ? 'on' : '') + '"><b class="ik-e"><svg viewBox="0 0 40 30" aria-hidden="true"><path d="M20 6 L15 27 H25 Z"/><rect x="3" y="5" width="34" height="3" rx="1.5"/><path d="M2 18 H14 Q13 22 8 22 Q3 22 2 18 Z M26 18 H38 Q37 22 32 22 Q27 22 26 18 Z"/></svg></b><span>Lös ekvationer</span><small>Med balansmetoden</small></button>' +
       '</div><div class="v-tva"><div><span class="v-et">2. Välj nivå</span><div class="v-seg a-niv">';
     for (var i = 1; i <= 5; i++) h += '<button data-niv="' + i + '" class="' + (V.niv === i ? 'on' : '') + '">' + i + '</button>';
@@ -330,8 +330,8 @@
       if (T.steg === 'exp') {
         T.rutor = [{ v: u.par.f, xk: true, buf: '' }, { v: u.par.f * u.par.p, buf: '' }];
         T.msg = 'Multiplicera in parentesen. Talet framför parentesen multipliceras med <b>båda</b> termerna inuti.';
-      } else if (T.steg === 'markera') T.msg = 'Tryck på alla <b>x-termer</b>.';
-      else { T.rutor = [{ v: null, buf: '' }]; T.msg = 'Förenkla uttrycket och skriv svaret. Skriv x-termen först.'; }
+      } else if (T.steg === 'markera') T.msg = 'Tryck på alla <b>variabeltermer</b>, alltså termerna med x.';
+      else { T.rutor = [{ v: null, buf: '' }]; T.msg = 'Förenkla uttrycket och skriv svaret. Skriv variabeltermen först.'; }
     } else {
       T.L = S(T.L0.a, T.L0.b, T.L0.d, T.L0.f, T.L0.p); T.R = S(T.R0.a, T.R0.b, T.R0.d, T.R0.f, T.R0.p);
       T.rader = [{ h: ekvHtml(T.L, T.R) }];
@@ -384,7 +384,7 @@
   }
 
   function ritaForenkla() {
-    var u = T, h = '<p class="up-fraga">Förenkla uttrycket</p><div class="a-uttr">';
+    var u = T, h = '<p class="up-fraga">Förenkla uttrycket</p>' + '<div class="a-leg"><span><i class="lx"></i>variabelterm (med x)</span><span><i class="lk2"></i>sifferterm (bara tal)</span></div>' + '<div class="a-uttr">';
     if (T.steg === 'exp') {
       h += uttrHtml(u) + '</div><div class="a-rad a-ny">' + parHtml({ par: u.par, pre: [] }) + ' = ' + ruta(0) + '<i class="xv">x</i> ' + ruta(1) + '</div>';
       return h;
@@ -404,10 +404,10 @@
     if (T.steg === 'xsum' || T.steg === 'ksum' || T.steg === 'klar') {
       var xs = ts.filter(function (t) { return t.x; }), ks = ts.filter(function (t) { return !t.x; });
       if (xs.length > 1) {
-        h += '<div class="a-rad"><span class="a-et tx">x-termerna</span>' + termerHtml(xs) + ' = ' + (T.steg === 'xsum' ? ruta(0) + '<i class="xv">x</i>' : '<span class="tx">' + kropp(T.A, true).replace(/^/, T.A < 0 ? MI : '') + '</span>') + '</div>';
+        h += '<div class="a-rad"><span class="a-et tx">variabeltermer</span>' + termerHtml(xs) + ' = ' + (T.steg === 'xsum' ? ruta(0) + '<i class="xv">x</i>' : '<span class="tx">' + kropp(T.A, true).replace(/^/, T.A < 0 ? MI : '') + '</span>') + '</div>';
       }
       if (ks.length > 1 && T.steg !== 'xsum') {
-        h += '<div class="a-rad"><span class="a-et tk">talen</span>' + termerHtml(ks) + ' = ' + (T.steg === 'ksum' ? ruta(0) : '<span class="tk">' + tal(T.B) + '</span>') + '</div>';
+        h += '<div class="a-rad"><span class="a-et tk">siffertermer</span>' + termerHtml(ks) + ' = ' + (T.steg === 'ksum' ? ruta(0) : '<span class="tk">' + tal(T.B) + '</span>') + '</div>';
       }
       if (T.steg === 'klar') h += '<div class="a-rad a-svar">Förenklat: <b>' + svarHtml(T.A, T.B) + '</b></div>';
     }
@@ -415,7 +415,7 @@
   }
 
   function ritaEkvation() {
-    var h = '<p class="up-fraga">Lös ekvationen' + (V.lage === 'steg' ? ' med balansmetoden' : '') + '</p><div class="a-ekv' + (visaVag(T) && V.lage === 'steg' ? ' med-vag' : '') + '"><div class="a-rader">';
+    var h = '<p class="up-fraga">Lös ekvationen' + (V.lage === 'steg' ? ' med balansmetoden' : '') + '</p>' + (V.lage === 'steg' ? '<div class="a-leg"><span><i class="lx"></i>variabelterm (med x)</span><span><i class="lk2"></i>sifferterm (bara tal)</span></div>' : '') + '<div class="a-ekv' + (visaVag(T) && V.lage === 'steg' ? ' med-vag' : '') + '"><div class="a-rader">';
     T.rader.forEach(function (r, i) { h += '<div class="a-rad' + (r.op ? ' a-oprad' : '') + (i === 0 ? ' a-start' : '') + '">' + r.h + '</div>'; });
     if (T.steg === 'fyll') {
       h += (T.opRad ? '<div class="a-rad a-oprad">' + T.opRad + '</div>' : '') + '<div class="a-rad a-ny">' + T.mall.replace(/\{R(\d+)\}/g, function (_, i) { return ruta(+i); }) + '</div>';
@@ -603,8 +603,8 @@
       var fx = '';
       if (T.steg === 'kontroll') fx = 'Räkna ut ledet igen. Multiplicera före addition och subtraktion.';
       else if (T.steg === 'exp') fx = 'Multiplicera talet framför parentesen med varje term inuti. Tänk på tecknen: ' + MI + ' gånger ' + MI + ' blir +.';
-      else if (T.steg === 'xsum') fx = 'Räkna bara med talen framför x. Ett ensamt x är 1x.';
-      else if (T.steg === 'ksum') fx = 'Räkna ihop talen, och tänk på tecknet framför varje tal.';
+      else if (T.steg === 'xsum') fx = 'Räkna bara med talen framför x (koefficienterna). Ett ensamt x är 1x.';
+      else if (T.steg === 'ksum') fx = 'Räkna ihop siffertermerna, och tänk på tecknet framför varje term.';
       else if (T.steg === 'sjalv') fx = 'Inte rätt. Försök igen' + (V.typ === 'ekvation' ? ', och kontrollera genom att sätta in ditt svar.' : '.');
       else fx = 'Rutan som är röd stämmer inte. Gör samma sak med varje tal och räkna igen.';
       if (T.steg === 'sjalv' && T.forsok >= 2) T.visaSvar = true;
@@ -631,13 +631,13 @@
     } else {
       if (T.steg === 'exp') {
         T.ts = T.exp.slice(); T.steg = 'markera'; T.rutor = null;
-        meddela('Rätt! ' + parHtml({ par: T.par, pre: [] }) + ' = ' + termerHtml(T.exp.slice(T.pre.length, T.pre.length + 2)) + '. Tryck nu på alla <b>x-termer</b>.', 'ok');
+        meddela('Rätt! ' + parHtml({ par: T.par, pre: [] }) + ' = ' + termerHtml(T.exp.slice(T.pre.length, T.pre.length + 2)) + '. Tryck nu på alla <b>variabeltermer</b>.', 'ok');
         return rita();
       }
       if (T.steg === 'xsum') {
         var ks = T.ts.filter(function (t) { return !t.x; });
         var extra = Math.abs(T.A) === 1 ? ' (1x skriver vi bara som x.)' : '';
-        if (ks.length > 1) { T.steg = 'ksum'; T.rutor = [{ v: T.B, buf: '' }]; T.akt = 0; meddela('Rätt!' + extra + ' Räkna nu ihop <b>talen</b>.', 'ok'); }
+        if (ks.length > 1) { T.steg = 'ksum'; T.rutor = [{ v: T.B, buf: '' }]; T.akt = 0; meddela('Rätt!' + extra + ' Räkna nu ihop <b>siffertermerna</b>.', 'ok'); }
         else klarForenkla('Rätt!' + extra);
         return rita();
       }
@@ -655,13 +655,13 @@
   function markera(i) {
     var t = T.ts[i];
     if (T.mark[i]) return;
-    if (!t.x) { T.fel++; meddela('<b>' + tal(t.k) + '</b> är ett tal utan x. Tryck bara på termerna som har x.', 'fel'); return rita(); }
+    if (!t.x) { T.fel++; meddela('<b>' + tal(t.k) + '</b> är en sifferterm, den har inget x. Tryck bara på variabeltermerna.', 'fel'); return rita(); }
     T.mark[i] = 1;
     var kvar = T.ts.filter(function (tt, j) { return tt.x && !T.mark[j]; }).length;
-    if (kvar) { meddela('Bra! Det finns ' + (kvar === 1 ? 'en x-term' : kvar + ' x-termer') + ' till.', 'ok'); return rita(); }
+    if (kvar) { meddela('Bra! Det finns ' + (kvar === 1 ? 'en variabelterm' : kvar + ' variabeltermer') + ' till.', 'ok'); return rita(); }
     var xs = T.ts.filter(function (tt) { return tt.x; }), ks = T.ts.filter(function (tt) { return !tt.x; });
-    if (xs.length > 1) { T.steg = 'xsum'; T.rutor = [{ v: T.A, xk: true, buf: '' }]; T.akt = 0; meddela('Alla x-termer är markerade. Räkna ihop dem. Tänk på tecknet framför varje term.', 'ok'); }
-    else if (ks.length > 1) { T.steg = 'ksum'; T.rutor = [{ v: T.B, buf: '' }]; T.akt = 0; meddela('Det finns bara en x-term. Räkna nu ihop <b>talen</b>.', 'ok'); }
+    if (xs.length > 1) { T.steg = 'xsum'; T.rutor = [{ v: T.A, xk: true, buf: '' }]; T.akt = 0; meddela('Alla variabeltermer är markerade. Räkna ihop dem. Tänk på tecknet framför varje term.', 'ok'); }
+    else if (ks.length > 1) { T.steg = 'ksum'; T.rutor = [{ v: T.B, buf: '' }]; T.akt = 0; meddela('Det finns bara en variabelterm. Räkna nu ihop <b>siffertermerna</b>.', 'ok'); }
     else klarForenkla('Bra!');
     rita();
   }
@@ -677,10 +677,10 @@
       if (m2[3]) { A += v; cx++; } else { B += v; ck++; }
     });
     if (!okForm) { meddela('Skriv till exempel 5x + 4.', 'vx'); return rita(); }
-    if (A === T.A && B === T.B && (cx > 1 || ck > 1)) { meddela('Det stämmer, men det går att förenkla mer. Samla alla x-termer till en och alla tal till ett.', 'vx'); return rita(); }
+    if (A === T.A && B === T.B && (cx > 1 || ck > 1)) { meddela('Det stämmer, men det går att förenkla mer. Samla alla variabeltermer till en och alla siffertermer till en.', 'vx'); return rita(); }
     if (A === T.A && B === T.B) { T.steg = 'klar'; meddela('Rätt! Det förenklade uttrycket är <b>' + svarHtml(T.A, T.B) + '</b>.', 'klar'); return rita(); }
     T.fel++; T.forsok++; r.fel = true;
-    var tip = A === T.A ? 'x-termen är rätt, men räkna om talen.' : (B === T.B && ck ? 'Talet är rätt, men räkna om x-termerna.' : 'Inte rätt. Försök igen.');
+    var tip = A === T.A ? 'Variabeltermen är rätt, men räkna om siffertermen.' : (B === T.B && ck ? 'Siffertermen är rätt, men räkna om variabeltermen.' : 'Inte rätt. Försök igen.');
     if (T.forsok >= 2) T.visaSvar = true;
     meddela(tip, 'fel'); rita();
   }
