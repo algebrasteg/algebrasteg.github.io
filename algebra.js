@@ -158,7 +158,7 @@
         L = S(a, b); Rr = S(c, d);
         if (Math.random() < 0.3) { L = S(a, 0); Rr = S(c, (a - c) * s); if (Rr.b <= 0) continue; }
       } else if (niv === 4) {
-        c = rnd(0, 4); a = c + rnd(1, 4); s = nz(-8, 8); b = nz(-12, 12);
+        c = rnd(flytta() ? 1 : 0, 4); a = c + rnd(1, 4); s = nz(-8, 8); b = nz(-12, 12);
         d = (a - c) * s + b; if (d === 0 || d === b) continue;
         if (s > 0 && b > 0 && d > 0) continue;
         if (Math.abs(d) > 40) continue;
@@ -245,7 +245,7 @@
 
   /* ---------- vågen ---------- */
   function visaVag(T) {
-    if (T.niv > 3) return false;
+    if (T.niv > 3 || flytta()) return false;
     var ok = true;
     [T.L, T.R].forEach(function (s) { if (s.f || s.d > 1 || s.a < 0 || s.b < 0 || s.a > 10 || s.b > 30) ok = false; });
     return ok;
@@ -284,7 +284,9 @@
   }
 
   /* ---------- tillstånd ---------- */
-  var V = { typ: hamta('typ', 'ekvation'), niv: +hamta('niv', '1'), lage: hamta('lage', 'steg') };
+  var V = { typ: hamta('typ', 'ekvation'), niv: +hamta('niv', '1'), lage: hamta('lage', 'steg'), metod: hamta('metod', 'balans') };
+  function flyttNiv() { return V.niv === 3 || V.niv === 4; }
+  function flytta() { return V.typ === 'ekvation' && V.lage === 'steg' && V.metod === 'flytta' && (V.niv === 3 || V.niv === 4); }
   if (!NIV[V.typ]) V.typ = 'ekvation';
   if (!(V.niv >= 1 && V.niv <= 5)) V.niv = 1;
   var runda = null, T = null;
@@ -301,12 +303,15 @@
     h += '</div><p class="a-nivtext"><b>Nivå ' + V.niv + ': ' + nv[0] + '</b>, till exempel ' + nv[1].replace(/x/g, '<i>x</i>') + '</p></div>' +
       '<div><span class="v-et">3. Hur vill du räkna?</span><div class="v-seg a-lage"><button data-lage="steg" class="' + (V.lage === 'steg' ? 'on' : '') + '">Steg för steg<small>Ett steg i taget</small></button>' +
       '<button data-lage="sjalv" class="' + (V.lage === 'sjalv' ? 'on' : '') + '">Själv<small>Skriv bara svaret</small></button></div></div></div>' +
+      (V.typ === 'ekvation' && V.lage === 'steg' ? '<div class="a-metod"><span class="v-et">4. Välj metod</span><div class="v-seg"><button data-metod="balans" class="' + (V.metod !== 'flytta' || !flyttNiv() ? 'on' : '') + '">Balansmetoden<small>Samma sak på båda sidor</small></button>' +
+        '<button data-metod="flytta" class="' + (V.metod === 'flytta' && flyttNiv() ? 'on' : '') + '"' + (!flyttNiv() ? ' disabled' : '') + '>Flytta över<small>' + (!flyttNiv() ? 'Nivå 3–4 (x i båda leden)' : 'Byter led, byter räknesätt') + '</small></button></div><p class="a-nivtext a-metodtext">' + (V.metod === 'flytta' && flyttNiv() ? '<b>Flytta över:</b> en term som byter led byter räknesätt. + blir ' + MI + ', ' + MI + ' blir +, \u00b7 blir \u00f7. Det är samma sak som balansmetoden, fast kortare. Används när det finns variabeltermer i båda leden.' : '<b>Balansmetoden:</b> gör samma sak på båda sidor av likhetstecknet, så att ekvationen hela tiden är i balans, som en våg.') + '</p></div>' : '') +
       '<div class="v-start"><button id="aStart">Starta</button></div></div>';
     R.innerHTML = h;
     R.removeAttribute('data-typ');
     R.querySelectorAll('[data-typ]').forEach(function (b) { b.onclick = function () { V.typ = b.dataset.typ; spara('typ', V.typ); startvy(); }; });
     R.querySelectorAll('[data-niv]').forEach(function (b) { b.onclick = function () { V.niv = +b.dataset.niv; spara('niv', V.niv); startvy(); }; });
     R.querySelectorAll('[data-lage]').forEach(function (b) { b.onclick = function () { V.lage = b.dataset.lage; spara('lage', V.lage); startvy(); }; });
+    R.querySelectorAll('[data-metod]').forEach(function (b) { b.onclick = function () { V.metod = b.dataset.metod; spara('metod', V.metod); startvy(); }; });
     document.getElementById('aStart').onclick = startaRunda;
   }
 
@@ -336,7 +341,7 @@
       T.L = S(T.L0.a, T.L0.b, T.L0.d, T.L0.f, T.L0.p); T.R = S(T.R0.a, T.R0.b, T.R0.d, T.R0.f, T.R0.p);
       T.rader = [{ h: ekvHtml(T.L, T.R) }];
       if (V.lage === 'sjalv') { T.steg = 'sjalv'; T.rutor = [{ v: T.s, buf: '' }]; T.msg = 'Lös ekvationen på papper och skriv vad x är.'; }
-      else { T.steg = 'op'; T.op = null; T.msg = 'Vad gör du på <b>båda sidor</b>? Välj räknesätt och skriv talet.'; }
+      else { T.steg = 'op'; T.op = null; T.msg = flytta() ? 'Vilken term vill du <b>flytta över</b> till andra sidan? Tryck på den.' : 'Vad gör du på <b>båda sidor</b>? Välj räknesätt och skriv talet.'; }
     }
     rita();
   }
@@ -370,7 +375,7 @@
   }
   function chip() {
     var nv = NIV[V.typ][V.niv - 1];
-    return '<div class="v-bar"><div class="v-chip"><b>' + (V.typ === 'forenkla' ? 'Förenkla uttryck' : 'Ekvationer') + '</b> · Nivå ' + V.niv + ': ' + nv[0] + ' · ' + (V.lage === 'steg' ? 'Steg för steg' : 'Själv') + '</div><button class="v-byt" id="aByt">Byt</button></div>';
+    return '<div class="v-bar"><div class="v-chip"><b>' + (V.typ === 'forenkla' ? 'Förenkla uttryck' : 'Ekvationer') + '</b> · Nivå ' + V.niv + ': ' + nv[0] + ' · ' + (V.lage === 'steg' ? 'Steg för steg' : 'Själv') + (flytta() ? ' · Flytta över' : '') + '</div><button class="v-byt" id="aByt">Byt</button></div>';
   }
 
   function rita() {
@@ -415,8 +420,13 @@
   }
 
   function ritaEkvation() {
-    var h = '<p class="up-fraga">Lös ekvationen' + (V.lage === 'steg' ? ' med balansmetoden' : '') + '</p>' + (V.lage === 'steg' ? '<div class="a-leg"><span><i class="lx"></i>variabelterm (med x)</span><span><i class="lk2"></i>sifferterm (bara tal)</span></div>' : '') + '<div class="a-ekv' + (visaVag(T) && V.lage === 'steg' ? ' med-vag' : '') + '"><div class="a-rader">';
-    T.rader.forEach(function (r, i) { h += '<div class="a-rad' + (r.op ? ' a-oprad' : '') + (i === 0 ? ' a-start' : '') + '">' + r.h + '</div>'; });
+    var h = '<p class="up-fraga">Lös ekvationen' + (V.lage === 'steg' ? (flytta() ? ' genom att flytta över termer' : ' med balansmetoden') : '') + '</p>' + (V.lage === 'steg' ? '<div class="a-leg"><span><i class="lx"></i>variabelterm (med x)</span><span><i class="lk2"></i>sifferterm (bara tal)</span></div>' : '') + '<div class="a-ekv' + (visaVag(T) && V.lage === 'steg' ? ' med-vag' : '') + '"><div class="a-rader">';
+    T.rader.forEach(function (r, i) {
+      var inne = r.h;
+      if (flytta() && T.steg === 'op' && i === T.rader.length - 1) inne = '<span class="sd">' + sidaKnappar(T.L, 'L', T.R) + '</span><span class="lk">=</span><span class="sd">' + sidaKnappar(T.R, 'R', T.L) + '</span>';
+      h += '<div class="a-rad' + (r.op ? ' a-oprad' : '') + (i === 0 ? ' a-start' : '') + (inne !== r.h ? ' a-klick' : '') + '">' + inne + '</div>';
+    });
+    if (T.steg === 'flytt') h += '<div class="a-rad a-ny">' + T.flyttMall.replace(/\{R(\d+)\}/g, function (_, i) { return ruta(+i); }) + '</div>';
     if (T.steg === 'fyll') {
       h += (T.opRad ? '<div class="a-rad a-oprad">' + T.opRad + '</div>' : '') + '<div class="a-rad a-ny">' + T.mall.replace(/\{R(\d+)\}/g, function (_, i) { return ruta(+i); }) + '</div>';
     } else if (T.steg === 'sjalv') {
@@ -433,7 +443,9 @@
 
   function ritaKontroller() {
     var h = '';
-    if (T.steg === 'op') {
+    if (T.steg === 'op' && flytta()) {
+      h += '<div class="up-knappar a-knappar">' + (T.L.f ? '<button class="up-angra" id="aExp">Multiplicera in parentesen</button>' : '') + '<button class="up-angra" id="aTips">Tips</button></div>';
+    } else if (T.steg === 'op') {
       h += '<div class="a-opgrid"><div class="a-opv-vanster"><div class="a-opval" role="group" aria-label="Räknesätt">';
       ['+', '-', '*', '/'].forEach(function (o) {
         h += '<button data-op="' + o + '" class="op-' + ({ '+': 'add', '-': 'sub', '*': 'mul', '/': 'div' })[o] + (T.op === o ? ' on' : '') + '"><b>' + OPTECKEN[o] + '</b><span>' + OPNAMN[o][0] + '</span></button>';
@@ -441,7 +453,7 @@
       h += '</div><div class="a-bada"><span>På båda sidor:</span><span class="a-opv">' + (T.op ? OPTECKEN[T.op] : '?') + '</span><span class="a-ruta sel bred">' + (T.buf ? T.buf.replace(/x/g, '<i>x</i>') : '&nbsp;') + '</span></div>';
       h += '<div class="up-knappar a-knappar">' + (T.L.f ? '<button class="up-angra" id="aExp">Multiplicera in parentesen</button>' : '') + '<button class="up-angra" id="aTips">Tips</button></div></div>';
       h += '<div class="up-pad-wrap">' + tangenter('op') + '</div></div>';
-    } else if (T.steg === 'fyll' || T.steg === 'exp' || T.steg === 'xsum' || T.steg === 'ksum' || T.steg === 'kontroll' || T.steg === 'sjalv') {
+    } else if (T.steg === 'fyll' || T.steg === 'flytt' || T.steg === 'exp' || T.steg === 'xsum' || T.steg === 'ksum' || T.steg === 'kontroll' || T.steg === 'sjalv') {
       var sort = (T.typ === 'forenkla' && T.steg === 'sjalv') ? 'uttr' : 'tal';
       h += '<div class="up-pad-wrap">' + tangenter(sort) + '</div>';
       if (T.visaSvar) h += '<div class="up-knappar a-knappar"><button class="up-angra" id="aVisa">Visa svaret</button></div>';
@@ -458,6 +470,7 @@
     R.querySelectorAll('[data-r]').forEach(function (r) { r.onclick = function () { T.akt = +r.dataset.r; rita(); }; });
     R.querySelectorAll('[data-op]').forEach(function (o) { o.onclick = function () { T.op = o.dataset.op; rita(); }; });
     R.querySelectorAll('[data-t]').forEach(function (t) { t.onclick = function () { markera(+t.dataset.t); }; });
+    R.querySelectorAll('[data-f]').forEach(function (t) { t.onclick = function () { tryckFlytt(t.dataset.f); }; });
     var e = document.getElementById('aExp'); if (e) e.onclick = function () { gorDrag({ op: 'exp' }); };
     var tp = document.getElementById('aTips'); if (tp) tp.onclick = tips;
     var n = document.getElementById('aNasta'); if (n) { n.onclick = nasta; try { n.focus({ preventScroll: true }); } catch (x) {} }
@@ -500,12 +513,19 @@
     g.forEach(function (d) { if (d.op === m.op && (m.op === 'exp' || (d.n === m.n && d.x === m.x))) traff = d; });
     if (!traff) {
       T.fel++;
-      meddela(m.op === 'exp' ? 'Det finns ingen parentes att multiplicera in.' : felDrag(T.L, T.R, m, g), 'fel');
+      var ft = m.op === 'exp' ? 'Det finns ingen parentes att multiplicera in.' : felDrag(T.L, T.R, m, g);
+      if (flytta()) ft = flyttFel(m, g);
+      meddela(ft, 'fel');
       return rita();
     }
+    if (flytta() && m.op !== 'exp') return startaFlytt(m);
+    fortsatt(m);
+  }
+  function fortsatt(m) {
     var nL = tillamp(T.L, m), nR = tillamp(T.R, m);
     // raden med draget på båda sidor
     if (m.op === 'exp') T.opRad = '';
+    else if (flytta()) T.opRad = T.flyttRad;
     else {
       var opv = ' <span class="opv op-' + ({ '+': 'add', '-': 'sub', '*': 'mul', '/': 'div' })[m.op] + '">' + opTextHtml(m) + '</span>';
       var pl = function (s) { var h = sidaHtml(s); return (m.op === '*' || m.op === '/') && (s.b && s.a || s.f) ? (s.f ? h : '(' + h + ')') : h; };
@@ -521,7 +541,7 @@
     T.rutor = []; T.nyL = nL; T.nyR = nR;
     T.mall = '<span class="sd">' + mallSida(T.L, nL, m) + '</span><span class="lk">=</span><span class="sd">' + mallSida(T.R, nR, m) + '</span>';
     T.akt = 0;
-    var namn = m.op === 'exp' ? 'Du multiplicerar in parentesen.' : 'Du ' + OPNAMN[m.op][1] + ' ' + opTextHtml(m).slice(2) + ' på båda sidor.';
+    var namn = m.op === 'exp' ? 'Du multiplicerar in parentesen.' : (flytta() ? 'Rätt! Räkna nu ut den nya ekvationen.' : 'Du ' + OPNAMN[m.op][1] + ' ' + opTextHtml(m).slice(2) + ' på båda sidor.');
     if (!T.rutor.length) {
       klarRad(namn + ' Då blir det ' + ekvHtml(nL, nR) + '.');
       return rita();
@@ -529,6 +549,63 @@
     T.steg = 'fyll';
     meddela(namn + ' Skriv den nya ekvationen' + (T.rutor.length > 1 ? ' (tryck på en ruta för att välja den)' : '') + '.', 'ok');
     rita();
+  }
+  /* ---------- flytta över ---------- */
+  function sidaKnappar(s, sd, annan) {
+    var b = function (f, inner, kl) { return '<button class="term fl ' + (kl || '') + '" data-f="' + sd + ':' + f + '">' + inner + '</button>'; };
+    if (s.f) return b('f', s.f, 'tx') + '(<i>x</i>' + (s.p < 0 ? ' ' + MI + ' ' : ' + ') + Math.abs(s.p) + ')';
+    var h = '', forst = true;
+    if (s.a) {
+      if (s.d > 1) h += '<span class="tx fl-fr"><span><i>x</i></span>' + b('d', s.d, 'tx') + '</span>';
+      else if (!s.b && !harX(annan) && s.a !== 1) h += b('k', s.a, 'tx') + '<span class="tx"><i>x</i></span>';
+      else h += b('a', (s.a < 0 ? MI : '') + kropp(s.a, true), 'tx');
+      forst = false;
+    }
+    if (s.b) h += (forst ? '' : ' ') + b('b', (s.b < 0 ? MI + ' ' : (forst ? '' : '+ ')) + Math.abs(s.b), 'tk');
+    return h || '<span class="tk">0</span>';
+  }
+  function tryckFlytt(f) {
+    var sd = f[0] === 'L' ? T.L : T.R, del = f.slice(2), m;
+    if (del === 'a') m = bort(sd.a, true);
+    else if (del === 'b') m = bort(sd.b, false);
+    else if (del === 'k') m = { op: '/', n: sd.a, x: false };
+    else if (del === 'd') m = { op: '*', n: sd.d, x: false };
+    else m = { op: '/', n: sd.f, x: false };
+    T.flyttFran = f[0];
+    gorDrag(m);
+  }
+  function startaFlytt(m) {
+    var fran = T.flyttFran === 'R' ? T.R : T.L, till = T.flyttFran === 'R' ? T.L : T.R;
+    var utan, tillH, v, xk = false, symb;
+    if (m.op === '+' || m.op === '-') {
+      utan = S(fran.a, fran.b, fran.d); if (m.x) utan.a = 0; else utan.b = 0;
+      v = m.op === '-' ? -m.n : m.n; xk = m.x;
+      tillH = sidaHtml(till) + ' {R0}' + (m.x ? '<span class="tx"><i>x</i></span>' : '');
+      symb = (v < 0 ? MI : '+') + ' ' + (m.x ? (m.n === 1 ? '' : m.n) + '<i>x</i>' : m.n);
+    } else if (m.op === '/') {
+      utan = fran.f ? S(1, fran.p) : S(1, fran.b);
+      v = m.n; tillH = frac(sidaHtml(till), '{R0}'); symb = '\u00f7 ' + m.n;
+    } else {
+      utan = S(1, fran.b); v = m.n; tillH = sidaHtml(till) + ' \u00b7 {R0}'; symb = '\u00b7 ' + m.n;
+    }
+    var fH = sidaHtml(utan);
+    T.flyttM = m;
+    T.flyttDelar = [fH, tillH];
+    T.flyttMall = T.flyttFran === 'R' ? '<span class="sd">' + tillH + '</span><span class="lk">=</span><span class="sd">' + fH + '</span>' : '<span class="sd">' + fH + '</span><span class="lk">=</span><span class="sd">' + tillH + '</span>';
+    T.rutor = [{ v: v, xk: xk, buf: '' }]; T.akt = 0; T.steg = 'flytt';
+    var vad = m.op === '+' || m.op === '-' ? 'Termen byter led och byter räknesätt: ' + (m.op === '-' ? '+ blir ' + MI : MI + ' blir +') : (m.op === '/' ? 'Talet multipliceras med x. När det byter led byter det räknesätt: \u00b7 blir \u00f7' : 'x divideras med talet. När det byter led byter det räknesätt: \u00f7 blir \u00b7');
+    meddela(vad + '. Skriv ' + (m.op === '+' || m.op === '-' ? 'termen med sitt nya tecken' : 'talet') + ' på andra sidan.', 'ok');
+    T.flyttSymb = symb;
+    rita();
+  }
+  function flyttKlar() {
+    var r = T.rutor[0], m = T.flyttM;
+    var fyllt = T.flyttMall.replace('{R0}', '<span class="opv op-' + ({ '+': 'add', '-': 'sub', '*': 'mul', '/': 'div' })[m.op] + '">' + (m.op === '+' || m.op === '-' ? (r.v < 0 ? MI : '+') + ' ' + (m.x ? (m.n === 1 ? '' : m.n) + '<i>x</i>' : m.n) : m.n) + '</span>').replace(/<span class="tx"><i>x<\/i><\/span>(?=<\/span><span class="lk">|<\/span>$)/, function (x) { return m.x ? '' : x; });
+    T.flyttRad = fyllt;
+    var bal = (m.op === '-' ? 'Subtrahera ' : m.op === '+' ? 'Addera ' : m.op === '/' ? 'Dividera med ' : 'Multiplicera med ') + (m.x ? (m.n === 1 ? '' : m.n) + 'x' : m.n);
+    T.flyttForkl = 'Det är samma sak som balansmetoden: ' + bal.toLowerCase() + ' på båda sidor.';
+    fortsatt(m);
+    meddela('Rätt! ' + T.flyttForkl + ' ' + (T.steg === 'fyll' ? 'Räkna nu ut den nya ekvationen.' : ''), 'ok');
   }
   function mallSida(gml, ny, m) {
     if (ny.f) return sidaHtml(ny);
@@ -606,6 +683,7 @@
       else if (T.steg === 'xsum') fx = 'Räkna bara med talen framför x (koefficienterna). Ett ensamt x är 1x.';
       else if (T.steg === 'ksum') fx = 'Räkna ihop siffertermerna, och tänk på tecknet framför varje term.';
       else if (T.steg === 'sjalv') fx = 'Inte rätt. Försök igen' + (V.typ === 'ekvation' ? ', och kontrollera genom att sätta in ditt svar.' : '.');
+      else if (T.steg === 'flytt') fx = T.flyttM.op === '+' || T.flyttM.op === '-' ? 'Tänk på tecknet. En term som byter led byter räknesätt: + blir ' + MI + ' och ' + MI + ' blir +.' : 'Skriv talet som flyttades. Det byter räknesätt men är samma tal.';
       else fx = 'Rutan som är röd stämmer inte. Gör samma sak med varje tal och räkna igen.';
       if (T.steg === 'sjalv' && T.forsok >= 2) T.visaSvar = true;
       meddela(fx, 'fel');
@@ -620,6 +698,7 @@
     }
     // allt rätt
     if (T.typ === 'ekvation') {
+      if (T.steg === 'flytt') { flyttKlar(); return rita(); }
       if (T.steg === 'fyll') { klarRad(''); return rita(); }
       if (T.steg === 'kontroll') {
         T.kontrollHtml = T.kontrollMall.replace(/\{R(\d+)\}/g, function (_, i) { return '<b class="tk">' + tal(T.rutor[+i].v) + '</b>'; });
@@ -690,10 +769,24 @@
     else { byggKontrollKlar(); meddela('Svaret är <b>x = ' + tal(T.s) + '</b>. Prova gärna Steg för steg om du vill se hur man gör.', 'vx'); }
     rita();
   }
+  function flyttTips(d) {
+    if (d.op === 'exp') return d.tips;
+    if (d.op === '+' || d.op === '-') return 'Flytta ' + (d.op === '-' ? '+' : MI) + (d.x ? (d.n === 1 ? '' : d.n) + 'x' : d.n) + ' till andra sidan. Tryck på den termen.';
+    if (d.op === '/') return 'Flytta talet ' + d.n + ' som multipliceras med x. Tryck på det.';
+    return 'Flytta talet ' + d.n + ' under bråkstrecket. Tryck på det.';
+  }
+  function flyttFel(m, g) {
+    var X = harX(T.L) && !harX(T.R) ? T.L : (harX(T.R) && !harX(T.L) ? T.R : null);
+    if (m.x && T.L.a && T.R.a) return 'Flytta den minsta variabeltermen, så blir det inte ett negativt antal x.';
+    if (m.x && X) return 'Variabeltermen ska stå kvar. Flytta en sifferterm eller talet framför x.';
+    if (!m.x && (m.op === '+' || m.op === '-') && X && X !== (T.flyttFran === 'L' ? T.L : T.R)) return 'Den siffertermen står redan ensam. Flytta termen som står tillsammans med x.';
+    if (X && X.b && (m.op === '/' || m.op === '*')) return 'Flytta först siffertermen ' + tal(X.b) + ' som står tillsammans med x.';
+    return 'Den termen hjälper inte nu. Tryck på Tips om du vill ha hjälp.';
+  }
   function tips() {
     var g = drag(T.L, T.R).filter(function (d) { return !d.sek; });
     T.fel++;
-    meddela('Tips: ' + (g[0] ? g[0].tips : 'Försök få x ensamt på ena sidan.'), 'vx');
+    meddela('Tips: ' + (g[0] ? (flytta() ? flyttTips(g[0]) : g[0].tips) : 'Försök få x ensamt på ena sidan.'), 'vx');
     rita();
   }
   function nasta() {
@@ -730,6 +823,6 @@
     if (/^[0-9x+\-*/]$/.test(k) || k === 'OK' || k === '⌫') { e.preventDefault(); tangent(k); }
   });
 
-  window.__alg = { genForenkla: genForenkla, genEkvation: genEkvation, drag: drag, tillamp: tillamp, loses: loses, varde: varde, T: function () { return T; } };
+  window.__alg = { V: V, flytta: flytta, genForenkla: genForenkla, genEkvation: genEkvation, drag: drag, tillamp: tillamp, loses: loses, varde: varde, T: function () { return T; } };
   startvy();
 })();
