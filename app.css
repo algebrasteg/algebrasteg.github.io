@@ -116,3 +116,11 @@ html body.spelar section.panel.panel{display:none!important}body.spelar main{mar
 .fl-fr>span{border-bottom:2.5px solid currentColor;padding:0 6px;margin-bottom:3px}
 
 @media (min-width:900px){.a-typ b{width:64px}.a-typ button{column-gap:12px}}
+
+/* ekvation i rubrikrutan */
+.ekvrad{display:flex;gap:8px;flex:none;align-items:center}
+.ekvrad i{display:flex;align-items:center;justify-content:center;height:62px;min-width:62px;padding:0 12px;border-radius:12px;font-style:normal;font-weight:800;font-size:34px;line-height:1;box-sizing:border-box}
+.ekvrad i.vt{background:#DCEDEE;color:#2A5D63}.ekvrad i.vt em{font-family:Georgia,serif;font-style:italic;font-weight:700}
+.ekvrad i.st{background:#F6ECDA;color:#7A5A2A}
+.ekvrad i.op{background:none;color:#fff;min-width:0;padding:0 2px}
+@media(max-width:600px){.ekvrad{width:100%;justify-content:center;gap:6px}.ekvrad i{height:46px;min-width:46px;font-size:26px;padding:0 10px;border-radius:9px}}
